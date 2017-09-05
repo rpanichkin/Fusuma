@@ -113,6 +113,10 @@ public struct ImageMetadata {
     @IBOutlet open weak var photoLibraryViewerContainer: UIView!
     @IBOutlet open weak var cameraShotContainer: UIView!
     @IBOutlet open weak var videoShotContainer: UIView!
+    
+    open var applyOverlay = false
+    open var overlayInset: CGFloat = 10.0
+    open var overlayColor = UIColor(colorLiteralRed: 0, green: 0, blue: 0, alpha: 0.6)
 
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var menuView: UIView!
@@ -308,6 +312,10 @@ public struct ImageMetadata {
             albumView.frame = CGRect(origin: CGPoint.zero, size: photoLibraryViewerContainer.frame.size)
             albumView.layoutIfNeeded()
             albumView.initialize()
+            
+            if applyOverlay {
+                applyOverlayLayer(containerView: albumView.imageCropViewContainer)
+            }
         }
         
         if availableModes.contains(.camera) {
@@ -315,6 +323,10 @@ public struct ImageMetadata {
             cameraView.frame = CGRect(origin: CGPoint.zero, size: cameraShotContainer.frame.size)
             cameraView.layoutIfNeeded()
             cameraView.initialize()
+            
+            if applyOverlay {
+                applyOverlayLayer(containerView: cameraView.previewViewContainer)
+            }
         }
         
         if availableModes.contains(.video) {
@@ -322,13 +334,40 @@ public struct ImageMetadata {
             videoView.frame = CGRect(origin: CGPoint.zero, size: videoShotContainer.frame.size)
             videoView.layoutIfNeeded()
             videoView.initialize()
-        }        
+            
+            if applyOverlay {
+                applyOverlayLayer(containerView: videoView.previewViewContainer)
+            }
+        }
     }
     
     open override func viewWillDisappear(_ animated: Bool) {
         
         super.viewWillDisappear(animated)
         self.stopAll()
+    }
+    
+    open func applyOverlayLayer(containerView: UIView) {
+        let overlay = CAShapeLayer(layer: containerView.layer)
+        overlay.fillColor = overlayColor.cgColor
+        overlay.fillRule = kCAFillRuleEvenOdd
+        
+        let radius = containerView.bounds.width * CGFloat(0.5) - overlayInset
+        let path = UIBezierPath(roundedRect: CGRect(x: 0,
+                                                    y: 0,
+                                                    width: containerView.bounds.width,
+                                                    height: containerView.bounds.height),
+                                cornerRadius: 0)
+        let circlePath = UIBezierPath(roundedRect: CGRect(x: overlayInset,
+                                                          y: overlayInset,
+                                                          width: 2 * radius,
+                                                          height: 2 * radius),
+                                      cornerRadius: radius)
+        path.append(circlePath)
+        path.usesEvenOddFillRule = true
+        overlay.path = path.cgPath
+        
+        containerView.layer.addSublayer(overlay)
     }
 
     override open var prefersStatusBarHidden : Bool {
